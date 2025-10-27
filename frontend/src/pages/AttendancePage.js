@@ -1,30 +1,52 @@
-import React, { useState } from 'react';
-
-// Mock data for today's attendance
-const allStaffAttendance = [
-  { id: 'TCS101', name: 'Dr. Anjali Rao', department: 'Computer Science', status: 'Present' },
-  { id: 'PHY102', name: 'Dr. Vikram Kumar', department: 'Physics', status: 'Present' },
-  { id: 'ADM003', name: 'Sunita Sharma', department: 'Admissions Office', status: 'Absent' },
-  { id: 'LIB004', name: 'Rajesh Singh', department: 'Library', status: 'On Leave' },
-  { id: 'MGT001', name: 'Dr. Priya Mehta', department: 'Administration', status: 'Present' },
-  { id: 'ENG205', name: 'Amit Desai', department: 'Engineering', status: 'Present' },
-  { id: 'COM301', name: 'Neha Gupta', department: 'Commerce', status: 'Absent' },
-];
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const AttendancePage = () => {
-  // 1. State to hold the currently selected filter. 'All' is the default.
+  const [allEmployees, setAllEmployees] = useState([]); // Will hold ALL employees from the API
+  const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  // 2. This is a derived state. We don't need a separate state for the filtered list.
-  // Instead, we calculate it on every render based on the full list and the active filter.
-  const filteredAttendance = allStaffAttendance.filter(staff => {
-    if (activeFilter === 'All') {
-      return true; // Show all staff
-    }
-    return staff.status === activeFilter; // Show only staff whose status matches the filter
+  // 1. Fetch ALL employees from the backend when the page loads
+  useEffect(() => {
+    const fetchAllEmployees = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/employees/');
+        let employeesData = [];
+        if (response.data && Array.isArray(response.data.results)) {
+          employeesData = response.data.results;
+        } else if (Array.isArray(response.data)) {
+          employeesData = response.data;
+        }
+        setAllEmployees(employeesData);
+      } catch (error) {
+        console.error("Error fetching employees for attendance:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllEmployees();
+  }, []); // Runs once on page load
+
+  // 2. Simulate attendance status for each real employee
+  // In a real app, this data would come from a dedicated '/api/attendance/' endpoint
+  const attendanceData = allEmployees.map((employee, index) => {
+    const statuses = ['Present', 'Absent', 'On Leave'];
+    return {
+      ...employee, // Include all original employee data
+      status: statuses[index % statuses.length], // Assign a simulated status
+    };
   });
-  
-  // Helper function to get styling for status badges
+
+  // 3. Filter the live, augmented data based on the active tab
+  const filteredAttendance = attendanceData.filter(staff => {
+    if (activeFilter === 'All') {
+      return true;
+    }
+    return staff.status === activeFilter;
+  });
+
+  // Helper functions (remain the same)
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'Present': return 'bg-green-100 text-green-800';
@@ -34,7 +56,6 @@ const AttendancePage = () => {
     }
   };
 
-  // Helper function for styling the active filter button
   const getFilterButtonClass = (filter) => {
     return activeFilter === filter
       ? 'bg-primary text-white'
@@ -42,25 +63,23 @@ const AttendancePage = () => {
   };
 
   return (
-    <>
-      <header className="bg-card-light dark:bg-card-dark p-4 flex justify-between items-center border-b border-border-light dark:border-border-dark sticky top-0">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-light dark:text-text-dark">Today's Attendance</h1>
-          <p className="text-sm text-subtext-light">October 22, 2025</p>
-        </div>
-      </header>
+    <div className="p-8">
+      <div className="mb-6">
+          <h1 className="text-3xl font-bold text-text-light dark:text-text-dark">Today's Attendance</h1>
+          <p className="text-sm text-subtext-light">A summary of staff and faculty attendance for today.</p>
+      </div>
 
-      <div className="p-8">
-        {/* Filter Buttons */}
-        <div className="mb-6 flex space-x-2">
-          <button onClick={() => setActiveFilter('All')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('All')}`}>All ({allStaffAttendance.length})</button>
-          <button onClick={() => setActiveFilter('Present')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('Present')}`}>Present</button>
-          <button onClick={() => setActiveFilter('Absent')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('Absent')}`}>Absent</button>
-          <button onClick={() => setActiveFilter('On Leave')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('On Leave')}`}>On Leave</button>
-        </div>
+      <div className="mb-6 flex space-x-2">
+        <button onClick={() => setActiveFilter('All')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('All')}`}>All ({attendanceData.length})</button>
+        <button onClick={() => setActiveFilter('Present')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('Present')}`}>Present</button>
+        <button onClick={() => setActiveFilter('Absent')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('Absent')}`}>Absent</button>
+        <button onClick={() => setActiveFilter('On Leave')} className={`px-4 py-2 rounded-lg text-sm font-medium ${getFilterButtonClass('On Leave')}`}>On Leave</button>
+      </div>
 
-        {/* Attendance Table */}
-        <div className="bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-md">
+      <div className="bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-md">
+        {isLoading ? (
+          <div className="text-center py-8 text-subtext-light">Loading employee data...</div>
+        ) : (
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-subtext-light dark:text-subtext-dark uppercase bg-background-light dark:bg-background-dark">
               <tr>
@@ -72,7 +91,9 @@ const AttendancePage = () => {
             <tbody>
               {filteredAttendance.map((staff) => (
                 <tr key={staff.id} className="border-b border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="px-6 py-4 font-medium text-text-light dark:text-text-dark">{staff.name}</td>
+                  <td className="px-6 py-4 font-medium text-text-light dark:text-text-dark">
+                    {staff.firstName} {staff.lastName}
+                  </td>
                   <td className="px-6 py-4">{staff.department}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(staff.status)}`}>
@@ -83,9 +104,9 @@ const AttendancePage = () => {
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

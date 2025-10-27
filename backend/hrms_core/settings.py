@@ -44,10 +44,10 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Your apps
+    'employee_management',
     'attendance_leave',
     'authentication',
     'dashboard',
-    'employee_management',
     'payroll',
     'leave_management', # <-- THIS IS THE NEW LINE YOU NEED TO ADD
 ]

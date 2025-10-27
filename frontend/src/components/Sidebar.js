@@ -1,25 +1,37 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import logoImage from '../assets/logo.png'; 
 
 const Sidebar = () => {
-  // State to manage the visibility of the 'Employee' submenu
-  const [isEmployeeOpen, setIsEmployeeOpen] = useState(true); // Default to open
+  const [isEmployeeOpen, setIsEmployeeOpen] = useState(true);
+  const navigate = useNavigate();
 
   const activeStyle = {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)', // bg-blue-50 dark:bg-blue-900/20
-    color: '#3B82F6', // primary color
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    color: '#3B82F6',
     fontWeight: '500',
   };
 
   const navLinkClass = "flex items-center px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700";
   const subNavLinkClass = "block px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg";
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    console.log("Logged out and token cleared.");
+    navigate('/');
+  };
+
   return (
     <aside className="w-64 bg-card-light dark:bg-card-dark flex-col hidden lg:flex shadow-lg overflow-y-auto">
-      <div className="p-6 flex items-center space-x-3">
-        <div className="w-8 h-8 bg-blue-500 rounded-full flex-shrink-0"></div>
+      <div className="p-6 flex items-center space-x-3 border-b border-border-light dark:border-border-dark">
+        <img 
+          src={logoImage} 
+          alt="University HRMS Logo" 
+          className="w-10 h-10"
+        />
         <h1 className="text-xl font-bold text-text-light dark:text-text-dark">University HRMS</h1>
       </div>
+
       <nav className="flex-1 px-4 py-2 space-y-1">
         <NavLink to="/dashboard" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
           <span className="material-icons mr-3">dashboard</span> Admin Dashboard
@@ -34,7 +46,11 @@ const Sidebar = () => {
           <span className="material-icons mr-3">group_add</span> Recruitment
         </NavLink>
 
-        {/* === UPDATED EMPLOYEE SECTION === */}
+        {/* --- ADDED "NOTES & APPROVALS" LINK HERE --- */}
+        <NavLink to="/notes-approvals" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+          <span className="material-icons mr-3">approval</span> Notes & Approvals
+        </NavLink>
+
         <div>
           <button 
             onClick={() => setIsEmployeeOpen(!isEmployeeOpen)} 
@@ -53,7 +69,6 @@ const Sidebar = () => {
               <NavLink to="/add-employee" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
                 Add New Staff
               </NavLink>
-              {/* The new Payroll link is added here */}
               <NavLink to="/payroll" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
                 Payroll
               </NavLink>
@@ -88,10 +103,16 @@ const Sidebar = () => {
         </NavLink>
       </nav>
 
-      <div className="p-4 mt-auto">
+      <div className="p-4 mt-auto border-t border-border-light dark:border-border-dark space-y-1">
         <NavLink to="/settings" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
           <span className="material-icons mr-3">settings</span> Settings
         </NavLink>
+        <button 
+          onClick={handleLogout}
+          className={`${navLinkClass} w-full text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
+        >
+          <span className="material-icons mr-3">logout</span> Logout
+        </button>
       </div>
     </aside>
   );

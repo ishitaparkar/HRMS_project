@@ -1,53 +1,22 @@
-.dashboard-container {
-  padding: 20px;
-}
-
-.dashboard-title {
-  margin-bottom: 20px;
-}
-
-.dashboard-widgets {
+.dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr; /* Default to a single column on mobile */
+  gap: 2rem; /* 32px gap */
 }
 
-.widget {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+/* On larger screens (lg and up), switch to a 3-column layout */
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    /* This creates a layout where the first column takes up 2/3 of the space
+       and the second column takes up the remaining 1/3 */
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
-.widget h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-  color: #555;
+.dashboard-main-content {
+  grid-column: span 1; /* By default, takes up one column span */
 }
 
-.widget .widget-value {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #2c3e50;
-  text-align: center;
-  margin: 10px 0 0 0;
-}
-
-.widget.full-width {
-  grid-column: 1 / -1; /* Makes this widget span the full width */
-}
-
-.department-list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.department-list li {
-  background-color: #ecf0f1;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.9rem;
+.dashboard-sidebar {
+  grid-column: span 1;
 }
