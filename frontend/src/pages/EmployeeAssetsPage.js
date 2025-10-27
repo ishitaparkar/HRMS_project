@@ -1,17 +1,50 @@
-import React from 'react';
-
-// Mock data for assets assigned to university staff, localized for context
-const assetsData = [
-  { id: 'LP-00123', type: 'Laptop', model: 'MacBook Pro 16"', status: 'Assigned', custodian: 'Dr. Anjali Rao', department: 'Computer Science', date: '2023-01-15' },
-  { id: 'MN-00456', type: 'Monitor', model: 'Dell UltraSharp U27', status: 'In Stock', custodian: '-', department: 'IT Services', date: '2022-11-20' },
-  { id: 'PH-00789', type: 'Phone', model: 'iPhone 14 Pro', status: 'In Repair', custodian: 'Vikram Singh', department: 'Library', date: '2022-09-01' },
-  { id: 'LP-00124', type: 'Laptop', model: 'Dell XPS 15', status: 'Assigned', custodian: 'Sunita Sharma', department: 'Admissions Office', date: '2023-03-10' },
-  { id: 'LP-00098', type: 'Laptop', model: 'Lenovo ThinkPad X1', status: 'Retired', custodian: '-', department: 'IT Services', date: '2020-05-20' },
-];
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const EmployeeAssetsPage = () => {
+  const [allAssets, setAllAssets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Helper function to render status badges with appropriate colors
+  // State for the status filter, defaulting to 'All'
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  useEffect(() => {
+    const fetchAndPrepareAssets = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/employees/');
+        let employeesData = response.data.results || response.data || [];
+
+        const simulatedAssets = employeesData.map((employee, index) => ({
+          id: `ASSET-${employee.id}`,
+          assetId: `LP-00${123 + employee.id}`,
+          type: ['Laptop', 'Monitor', 'Phone', 'ID Card'][index % 4],
+          model: ['MacBook Pro 16"', 'Dell UltraSharp U27', 'iPhone 14 Pro', 'Faculty Access Card'][index % 4],
+          status: ['Assigned', 'In Repair', 'In Stock', 'Retired'][index % 4],
+          custodian: `${employee.firstName} ${employee.lastName}`,
+          department: employee.department,
+          date: employee.joiningDate,
+        }));
+
+        setAllAssets(simulatedAssets);
+      } catch (error) {
+        console.error("Error fetching data for assets:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAndPrepareAssets();
+  }, []);
+
+  // Filtered assets are now derived from the status filter state
+  const filteredAssets = allAssets.filter(asset => {
+    if (statusFilter === 'All') {
+      return true; // Show all assets
+    }
+    return asset.status === statusFilter; // Show only assets with the selected status
+  });
+
   const getStatusBadge = (status) => {
     const baseClasses = "px-2.5 py-0.5 text-xs font-medium rounded-full";
     switch (status) {
@@ -24,65 +57,61 @@ const EmployeeAssetsPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-        <header className="bg-card-light dark:bg-card-dark p-4 border-b border-border-light dark:border-border-dark flex-shrink-0">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-semibold text-text-light dark:text-text-dark">Asset Management</h1>
-                    <p className="text-sm text-subtext-light">Overview of all university assets assigned to staff.</p>
-                </div>
-                <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center hover:bg-blue-600">
-                    <span className="material-icons mr-2 text-base">add</span> Add New Asset
-                </button>
-            </div>
-        </header>
+    <div className="p-8">
+      {/* === UPDATED HEADER SECTION === */}
+      <div className="flex justify-between items-center mb-6">
+          <div>
+              <h1 className="text-3xl font-bold text-text-light dark:text-text-dark">Asset Management</h1>
+              <p className="text-sm text-subtext-light">Filter and view all university assets.</p>
+          </div>
+          {/* The Status filter dropdown is now in the header */}
+          <div className="w-full max-w-xs">
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg bg-card-light dark:bg-gray-800 border border-border-light dark:border-border-dark text-sm"
+            >
+              <option value="All">Filter by Status</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Stock">In Stock</option>
+              <option value="In Repair">In Repair</option>
+              <option value="Retired">Retired</option>
+            </select>
+          </div>
+      </div>
 
-        <div className="p-8">
-            {/* Search and Filter Bar */}
-            <div className="mb-6 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-grow w-full">
-                    <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-subtext-light">search</span>
-                    <input type="text" placeholder="Search by asset ID, type, or staff name..." className="w-full pl-10 pr-4 py-2 rounded-lg bg-card-light dark:bg-background-dark border border-border-light dark:border-border-dark" />
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                    <button className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-card-light dark:bg-gray-800 border border-border-light dark:border-border-dark">Status <span className="material-icons text-base">expand_more</span></button>
-                    <button className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-card-light dark:bg-gray-800 border border-border-light dark:border-border-dark">Asset Type <span className="material-icons text-base">expand_more</span></button>
-                    <button className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-card-light dark:bg-gray-800 border border-border-light dark:border-border-dark">Department <span className="material-icons text-base">expand_more</span></button>
-                </div>
-            </div>
-
-            {/* Main Asset Table */}
-            <div className="overflow-x-auto rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
-                <table className="w-full text-left text-sm text-text-light dark:text-gray-300">
-                    <thead className="bg-gray-50 dark:bg-gray-900/50 text-xs uppercase text-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th className="p-4"><input className="form-checkbox rounded text-primary focus:ring-primary/50" type="checkbox" /></th>
-                            <th className="px-6 py-3">Asset ID</th>
-                            <th className="px-6 py-3">Type</th>
-                            <th className="px-6 py-3">Model/Name</th>
-                            <th className="px-6 py-3">Status</th>
-                            <th className="px-6 py-3">Current Custodian</th>
-                            <th className="px-6 py-3">Department</th>
-                            <th className="px-6 py-3">Purchase Date</th>
+      <div className="overflow-x-auto rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+        {isLoading ? (
+            <div className="text-center py-10 text-subtext-light">Loading asset data...</div>
+        ) : (
+            <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs uppercase">
+                    <tr>
+                        <th className="px-6 py-3">Asset ID</th>
+                        <th className="px-6 py-3">Type</th>
+                        <th className="px-6 py-3">Model/Name</th>
+                        <th className="px-6 py-3">Status</th>
+                        <th className="px-6 py-3">Current Custodian</th>
+                        <th className="px-6 py-3">Department</th>
+                        <th className="px-6 py-3">Purchase Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredAssets.map(asset => (
+                        <tr key={asset.id} className="border-b hover:bg-gray-50">
+                            <td className="px-6 py-4 font-medium">{asset.id}</td>
+                            <td className="px-6 py-4">{asset.type}</td>
+                            <td className="px-6 py-4">{asset.model}</td>
+                            <td className="px-6 py-4">{getStatusBadge(asset.status)}</td>
+                            <td className="px-6 py-4 font-semibold text-text-light dark:text-white">{asset.custodian}</td>
+                            <td className="px-6 py-4">{asset.department}</td>
+                            <td className="px-6 py-4">{asset.date}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {assetsData.map(asset => (
-                            <tr key={asset.id} className="border-b dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <td className="w-4 p-4"><input className="form-checkbox rounded text-primary focus:ring-primary/50" type="checkbox" /></td>
-                                <td className="px-6 py-4 font-medium">{asset.id}</td>
-                                <td className="px-6 py-4">{asset.type}</td>
-                                <td className="px-6 py-4">{asset.model}</td>
-                                <td className="px-6 py-4">{getStatusBadge(asset.status)}</td>
-                                <td className="px-6 py-4">{asset.custodian}</td>
-                                <td className="px-6 py-4">{asset.department}</td>
-                                <td className="px-6 py-4">{asset.date}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    ))}
+                </tbody>
+            </table>
+        )}
+      </div>
     </div>
   );
 };

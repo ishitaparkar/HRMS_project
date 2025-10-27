@@ -10,7 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import EmployeeManagementPage from "./pages/EmployeeManagementPage";
 import AddEmployeePage from "./pages/AddEmployeePage";
 import EmployeeDetailsPage from "./pages/EmployeeDetailsPage";
-import EditEmployeePage from "./pages/EditEmployeePage"; // ✅ fixed import path
+import EditEmployeePage from "./pages/EditEmployeePage";
 
 // Other Feature Pages
 import ProfilePage from "./pages/ProfilePage";
@@ -40,6 +40,7 @@ import PostVacancyPage from "./pages/PostVacancyPage";
 
 // Notes & Approvals
 import NoteManagementPage from "./pages/NoteManagementPage";
+import NoteDetailsPage from "./pages/NoteDetailsPage"; // <-- 1. IMPORT THE NEW PAGE
 
 function App() {
   return (
@@ -87,6 +88,9 @@ function App() {
             <Route path="/resignation" element={<ResignationPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/notes-approvals" element={<NoteManagementPage />} />
+            
+            {/* --- 2. ADD THE NEW ROUTE FOR NOTE DETAILS --- */}
+            <Route path="/notes-approvals/:noteId" element={<NoteDetailsPage />} />
           </Route>
         </Route>
       </Routes>

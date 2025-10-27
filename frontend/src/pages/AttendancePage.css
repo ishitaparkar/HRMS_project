@@ -1,0 +1,43 @@
+/* Override default react-big-calendar styles */
+.rbc-calendar {
+  font-family: inherit;
+  border: none;
+}
+.rbc-toolbar {
+  margin-bottom: 1rem;
+}
+.rbc-toolbar button {
+  border: 1px solid #E5E7EB; /* border-border-light */
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+}
+.rbc-toolbar button.rbc-active {
+  background-color: #3B82F6; /* primary color */
+  color: white;
+  border-color: #3B82F6;
+}
+.rbc-header {
+  padding: 0.75rem 0;
+  text-align: right;
+}
+.rbc-event {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  border: none;
+}
+.rbc-day-bg.rbc-today {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Custom event styles */
+.event-good {
+  background-color: #10B981; /* Green */
+}
+.event-bad {
+  background-color: #EF4444; /* Red */
+}
+.day-present { background-color: rgba(16, 185, 129, 0.1); }
+.day-absent { background-color: rgba(239, 68, 68, 0.1); }
+.day-on-leave { background-color: rgba(245, 158, 11, 0.1); }
+.day-half-day { background-color: rgba(245, 158, 11, 0.3); } /* A slightly different orange */
