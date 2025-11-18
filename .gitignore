@@ -38,6 +38,9 @@ yarn-error.log*
 *.swo
 *~
 
+# Kiro specs
+.kiro/
+
 # OS
 .DS_Store
 Thumbs.db
