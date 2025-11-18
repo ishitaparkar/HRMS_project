@@ -23,3 +23,11 @@ class LeaveRequest(models.Model):
 
     def __str__(self):
         return f"{self.employee.firstName}'s {self.leave_type} request"
+
+    class Meta:
+        permissions = [
+            ("view_all_leaves", "Can view all leave requests"),
+            ("view_department_leaves", "Can view department leave requests"),
+            ("approve_leaves", "Can approve leave requests"),
+            ("manage_own_leaves", "Can manage own leave requests"),
+        ]

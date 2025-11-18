@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { usePermission } from '../contexts/PermissionContext';
 
 const RequestLeavePage = () => {
   const navigate = useNavigate();
+  const { hasRole } = usePermission();
+  const isEmployee = hasRole('Employee');
+  const isHRManager = hasRole('HR Manager');
+  const isSuperAdmin = hasRole('Super Admin');
 
   // State for the form data
   const [formData, setFormData] = useState({
@@ -14,13 +19,53 @@ const RequestLeavePage = () => {
     reason: '',
   });
   
-  // NEW: State to manage the user-typed Staff ID (e.g., 'CS101')
+  // State to manage the user-typed Staff ID (e.g., 'CS101') - for HR/Admin only
   const [staffIdInput, setStaffIdInput] = useState('');
-  // NEW: State to display the fetched employee's name for confirmation
+  // State to display the fetched employee's name for confirmation
   const [fetchedEmployeeName, setFetchedEmployeeName] = useState('');
   const [isFetching, setIsFetching] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // This function is called when the "Fetch Details" button is clicked
+  // Auto-fetch logged-in employee's details on page load
+  useEffect(() => {
+    const fetchOwnProfile = async () => {
+      if (isEmployee && !isHRManager && !isSuperAdmin) {
+        setIsLoadingProfile(true);
+        try {
+          const token = localStorage.getItem('authToken');
+          
+          // Get current user info
+          const userResponse = await axios.get('http://127.0.0.1:8000/api/auth/me/', {
+            headers: { 'Authorization': `Token ${token}` }
+          });
+          const employeeId = userResponse.data.employee_id;
+          
+          // Get employee details
+          const empResponse = await axios.get(`http://127.0.0.1:8000/api/employees/${employeeId}/`, {
+            headers: { 'Authorization': `Token ${token}` }
+          });
+          
+          const employee = empResponse.data;
+          
+          // Auto-fill employee details
+          setFormData(prev => ({ ...prev, employee_id: employee.id }));
+          setFetchedEmployeeName(`${employee.firstName} ${employee.lastName} - ${employee.department}`);
+          setStaffIdInput(employee.employeeId);
+        } catch (error) {
+          console.error("Failed to fetch own profile:", error);
+          alert('Failed to load your profile. Please try again.');
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      } else {
+        setIsLoadingProfile(false);
+      }
+    };
+    
+    fetchOwnProfile();
+  }, [isEmployee, isHRManager, isSuperAdmin]);
+
+  // This function is called when the "Fetch Details" button is clicked (HR/Admin only)
   const handleFetchEmployee = async () => {
     if (!staffIdInput) {
       alert('Please enter a Staff ID.');
@@ -70,16 +115,36 @@ const RequestLeavePage = () => {
     }
   };
 
+  if (isLoadingProfile) {
+    return (
+      <div className="flex flex-col h-full">
+        <header className="bg-card-light dark:bg-card-dark p-4 border-b border-border-light">
+          <h1 className="text-2xl font-semibold">Submit a New Leave Request</h1>
+        </header>
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-subtext-light">Loading your profile...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <header className="bg-card-light dark:bg-card-dark p-4 border-b border-border-light"><h1 className="text-2xl font-semibold">Submit a New Leave Request</h1></header>
+      <header className="bg-card-light dark:bg-card-dark p-4 border-b border-border-light">
+        <h1 className="text-2xl font-semibold">Submit a New Leave Request</h1>
+      </header>
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto bg-card-light p-8 rounded-lg shadow-md">
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            {/* --- NEW, IMPROVED EMPLOYEE INPUT --- */}
+            {/* Employee Input - Auto-filled for employees, manual for HR/Admin */}
             <div>
-              <label htmlFor="staffIdInput" className="block text-sm font-medium text-subtext-light">Employee Staff ID</label>
+              <label htmlFor="staffIdInput" className="block text-sm font-medium text-subtext-light">
+                Employee Staff ID
+              </label>
               <div className="flex items-center space-x-2 mt-1">
                 <input 
                   type="text" 
@@ -87,22 +152,31 @@ const RequestLeavePage = () => {
                   value={staffIdInput} 
                   onChange={(e) => setStaffIdInput(e.target.value)} 
                   required 
-                  className="w-full bg-background-light dark:bg-gray-800 border-border-light rounded-md" 
+                  disabled={isEmployee && !isHRManager && !isSuperAdmin}
+                  className={`w-full bg-background-light dark:bg-gray-800 border-border-light rounded-md ${
+                    isEmployee && !isHRManager && !isSuperAdmin ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
                   placeholder="e.g., CS101"
                 />
-                <button 
-                  type="button" 
-                  onClick={handleFetchEmployee}
-                  disabled={isFetching}
-                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 disabled:opacity-50"
-                >
-                  {isFetching ? 'Fetching...' : 'Fetch Details'}
-                </button>
+                {(isHRManager || isSuperAdmin) && (
+                  <button 
+                    type="button" 
+                    onClick={handleFetchEmployee}
+                    disabled={isFetching}
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    {isFetching ? 'Fetching...' : 'Fetch Details'}
+                  </button>
+                )}
               </div>
-              {/* This area will display the autofilled name */}
+              {/* Display the employee name */}
               {fetchedEmployeeName && (
-                <div className="mt-2 p-2 bg-green-50 text-green-800 rounded-md text-sm">
+                <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-md text-sm flex items-center">
+                  <span className="material-icons text-sm mr-2">check_circle</span>
                   {fetchedEmployeeName}
+                  {isEmployee && !isHRManager && !isSuperAdmin && (
+                    <span className="ml-2 text-xs">(Auto-filled from your profile)</span>
+                  )}
                 </div>
               )}
             </div>

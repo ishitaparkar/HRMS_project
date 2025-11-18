@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { usePermission } from '../contexts/PermissionContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { setAuthData } = usePermission();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -22,10 +24,32 @@ const LoginPage = () => {
       });
 
       console.log("Login successful:", response.data);
+      
+      // Store token
       const token = response.data.token;
       localStorage.setItem('authToken', token);
       axios.defaults.headers.common['Authorization'] = `Token ${token}`;
-      navigate('/dashboard');
+      
+      // Store roles, permissions, and department using PermissionContext
+      setAuthData({
+        roles: response.data.roles || [],
+        permissions: response.data.permissions || [],
+        department: response.data.department || null,
+        user_id: response.data.user_id,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        full_name: response.data.full_name,
+        employee_id: response.data.employee_id,
+        requires_password_change: response.data.requires_password_change,
+      });
+      
+      // Check if user needs to change password on first login
+      if (response.data.requires_password_change) {
+        navigate('/first-login-password-change');
+      } else {
+        navigate('/dashboard');
+      }
 
     } catch (err) {
       console.error("Login failed:", err.response);

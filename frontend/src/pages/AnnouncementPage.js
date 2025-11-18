@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-// 1. Import the reusable component we just created
-import AnnouncementCard from '../components/AnnouncementCard';
+import { PageHeader, Card, Button } from '../components/ui';
 
 // Mock data for announcements
 const initialAnnouncements = [
@@ -28,34 +27,80 @@ const initialAnnouncements = [
 ];
 
 const AnnouncementPage = () => {
-  // 2. Use state to hold the list of announcements
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
 
   return (
-    <>
-      <header className="bg-card-light dark:bg-card-dark p-4 flex justify-between items-center border-b border-border-light dark:border-border-dark sticky top-0">
-        <h1 className="text-2xl font-semibold text-text-light dark:text-text-dark">University Announcements</h1>
-        <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center hover:bg-blue-600">
-          <span className="material-icons mr-2 text-base">add</span> Create New
-        </button>
-      </header>
+    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+      <PageHeader
+        title="University Announcements"
+        description="Stay updated with the latest news and announcements"
+        icon="campaign"
+        actions={
+          <Button
+            variant="primary"
+            size="md"
+            icon="add"
+            onClick={() => console.log('Create New Announcement')}
+          >
+            Create New
+          </Button>
+        }
+      />
 
-      <div className="p-8">
-        {/* 3. A container for our list of cards */}
-        <div className="space-y-6">
-          {/* 4. Map over the announcements data and render an AnnouncementCard for each one */}
+      <div className="p-6">
+        <div className="space-y-4">
           {announcements.map(announcement => (
-            <AnnouncementCard
+            <Card 
               key={announcement.id}
-              title={announcement.title}
-              date={announcement.date}
-              author={announcement.author}
-              content={announcement.content}
-            />
+              className="border-l-4 border-primary"
+            >
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-heading-light dark:text-heading-dark mb-1">
+                    {announcement.title}
+                  </h3>
+                  <p className="text-sm text-subtext-light dark:text-subtext-dark">
+                    Posted by {announcement.author}
+                  </p>
+                </div>
+                <span className="text-xs font-medium text-subtext-light dark:text-subtext-dark bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                  {announcement.date}
+                </span>
+              </div>
+              <p className="text-sm text-text-light dark:text-text-dark leading-relaxed">
+                {announcement.content}
+              </p>
+              <div className="flex gap-2 mt-4 pt-4 border-t border-border-light dark:border-border-dark">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon="edit"
+                  onClick={() => console.log('Edit announcement', announcement.id)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon="delete"
+                  onClick={() => console.log('Delete announcement', announcement.id)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </Card>
           ))}
+          {announcements.length === 0 && (
+            <Card>
+              <div className="text-center py-8 text-subtext-light dark:text-subtext-dark">
+                <span className="material-icons text-6xl mb-4 opacity-50">campaign</span>
+                <p>No announcements available at this time.</p>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

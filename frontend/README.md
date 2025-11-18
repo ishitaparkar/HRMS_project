@@ -1,4 +1,15 @@
-# Getting Started with Create React App
+# University HRMS Frontend
+
+This is the React frontend for the University HRMS (Human Resource Management System).
+
+## Documentation
+
+- **User Guide**: See [docs/USER_GUIDE_HR_MANAGER.md](../docs/USER_GUIDE_HR_MANAGER.md) for end-user documentation
+- **UI Components**: See [src/components/ui/README.md](src/components/ui/README.md) for component library documentation
+- **Menu Structure**: See [docs/MENU_STRUCTURE_REFERENCE.md](../docs/MENU_STRUCTURE_REFERENCE.md) for quick reference
+- **Permission Context**: See [src/contexts/README.md](src/contexts/README.md) for RBAC documentation
+
+## Getting Started
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

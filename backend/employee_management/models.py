@@ -18,3 +18,10 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.firstName} {self.lastName} ({self.employeeId})"
+
+    class Meta:
+        permissions = [
+            ("view_all_employees", "Can view all employees"),
+            ("view_department_employees", "Can view department employees"),
+            ("manage_employees", "Can manage employees"),
+        ]
