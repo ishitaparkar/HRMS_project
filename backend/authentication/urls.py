@@ -3,7 +3,7 @@ from .views import (
     CustomAuthToken, CurrentUserView, FirstTimePasswordChangeView,
     RoleListCreateAPIView, RoleAssignmentAPIView,
     RoleRevocationAPIView, UserListAPIView, UserRolesListAPIView,
-    AuditLogListAPIView
+    AuditLogListAPIView, UserPreferencesAPIView
 )
 
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
     path('login/', CustomAuthToken.as_view(), name='auth-token'),
     path('me/', CurrentUserView.as_view(), name='current-user'),
     path('first-login-password-change/', FirstTimePasswordChangeView.as_view(), name='first-login-password-change'),
+    path('preferences/', UserPreferencesAPIView.as_view(), name='user-preferences'),
     
     # Role management endpoints
     path('roles/', RoleListCreateAPIView.as_view(), name='role-list-create'),

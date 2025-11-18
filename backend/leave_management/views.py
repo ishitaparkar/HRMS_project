@@ -176,3 +176,98 @@ class LeaveRequestDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
             details={'reason': 'Cannot delete this leave request'}
         )
         raise PermissionDenied("You do not have permission to delete this leave request.")
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from datetime import datetime, timedelta
+from django.utils import timezone
+from .models import LeaveBalance, Holiday
+from .serializers import (
+    LeaveBalanceSerializer, 
+    HolidaySerializer, 
+    MyLeaveRequestSerializer,
+    LeaveRequestCreateSerializer
+)
+
+
+class MyLeaveAPIView(APIView):
+    """
+    GET /api/leave/my-leave/
+    Returns leave balances, leave requests, and upcoming holidays for the authenticated user.
+    
+    POST /api/leave/my-leave/
+    Creates a new leave request for the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get leave information for the authenticated user.
+        """
+        user = request.user
+        
+        # Check if user has an employee profile
+        if not hasattr(user, 'profile') or not user.profile.employee:
+            return Response(
+                {"error": "User does not have an employee profile."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        employee = user.profile.employee
+        
+        # Get leave balances
+        leave_balances = LeaveBalance.objects.filter(employee=employee)
+        balances_data = LeaveBalanceSerializer(leave_balances, many=True).data
+        
+        # Get leave requests
+        leave_requests = LeaveRequest.objects.filter(employee=employee).order_by('-start_date')
+        requests_data = MyLeaveRequestSerializer(leave_requests, many=True).data
+        
+        # Get upcoming holidays (current month and next month)
+        today = timezone.now().date()
+        end_of_next_month = (today.replace(day=1) + timedelta(days=62)).replace(day=1) - timedelta(days=1)
+        holidays = Holiday.objects.filter(
+            date__gte=today,
+            date__lte=end_of_next_month
+        )
+        holidays_data = HolidaySerializer(holidays, many=True).data
+        
+        return Response({
+            'balances': balances_data,
+            'requests': requests_data,
+            'holidays': holidays_data
+        })
+    
+    def post(self, request):
+        """
+        Create a new leave request for the authenticated user.
+        """
+        user = request.user
+        
+        # Check if user has an employee profile
+        if not hasattr(user, 'profile') or not user.profile.employee:
+            return Response(
+                {"error": "User does not have an employee profile."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        employee = user.profile.employee
+        
+        # Create serializer with employee context for validation
+        serializer = LeaveRequestCreateSerializer(
+            data=request.data,
+            context={'employee': employee}
+        )
+        
+        if serializer.is_valid():
+            # Save the leave request with the employee
+            leave_request = serializer.save(employee=employee)
+            
+            # Return the created leave request
+            response_serializer = MyLeaveRequestSerializer(leave_request)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 # 1. Add 'include' to this import line
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +27,10 @@ urlpatterns = [
     path('api/', include('employee_management.urls')),
     path('api/', include('leave_management.urls')), 
     path('api/auth/', include('authentication.urls')),
+    path('api/performance/', include('performance_management.urls')),
+    path('api/attendance/', include('attendance_leave.urls')),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

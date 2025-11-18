@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { formatFileSize } from '../../utils/formatFileSize';
 
 const DocumentsSection = ({ employeeId }) => {
@@ -6,20 +6,26 @@ const DocumentsSection = ({ employeeId }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [visibleDocuments, setVisibleDocuments] = useState([]);
+  const [loadedCount, setLoadedCount] = useState(10);
+  const [downloadError, setDownloadError] = useState(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+  const observerRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   const categories = ['Personal', 'Employment', 'Certificates'];
 
   useEffect(() => {
-    if (!employeeId) {
-      setLoading(false);
-      return;
-    }
-
     const fetchDocuments = async () => {
+      if (!employeeId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         
         const response = await fetch(
           `http://localhost:8000/api/employees/${employeeId}/documents/`,
@@ -46,11 +52,58 @@ const DocumentsSection = ({ employeeId }) => {
     };
 
     fetchDocuments();
-  }, [employeeId]);
+  }, [employeeId, retryTrigger]);
+
+  // Lazy loading: Load documents in batches
+  useEffect(() => {
+    const filteredDocs = documents.filter(doc => doc.category === activeCategory);
+    setVisibleDocuments(filteredDocs.slice(0, loadedCount));
+  }, [documents, activeCategory, loadedCount]);
+
+  // Intersection Observer for infinite scroll
+  const handleObserver = useCallback((entries) => {
+    const target = entries[0];
+    if (target.isIntersecting) {
+      const filteredDocs = documents.filter(doc => doc.category === activeCategory);
+      if (visibleDocuments.length < filteredDocs.length) {
+        setLoadedCount(prev => prev + 10);
+      }
+    }
+  }, [documents, activeCategory, visibleDocuments.length]);
+
+  useEffect(() => {
+    const option = {
+      root: null,
+      rootMargin: '20px',
+      threshold: 0
+    };
+    
+    observerRef.current = new IntersectionObserver(handleObserver, option);
+    
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+    
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [handleObserver]);
+
+  // Reset loaded count when category changes
+  useEffect(() => {
+    setLoadedCount(10);
+  }, [activeCategory]);
+
+  const handleRetry = () => {
+    setRetryTrigger(prev => prev + 1);
+  };
 
   const handleDownload = async (documentId, documentName) => {
     try {
-      const token = localStorage.getItem('token');
+      setDownloadError(null);
+      const token = localStorage.getItem('authToken');
       
       const response = await fetch(
         `http://localhost:8000/api/employees/${employeeId}/documents/${documentId}/download/`,
@@ -72,10 +125,11 @@ const DocumentsSection = ({ employeeId }) => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else {
-        console.error('Failed to download document');
+        setDownloadError(`Failed to download ${documentName}`);
       }
     } catch (err) {
       console.error('Error downloading document:', err);
+      setDownloadError(`Error downloading ${documentName}. Please try again.`);
     }
   };
 
@@ -121,6 +175,7 @@ const DocumentsSection = ({ employeeId }) => {
   };
 
   const filteredDocuments = documents.filter(doc => doc.category === activeCategory);
+  const hasMoreDocuments = visibleDocuments.length < filteredDocuments.length;
 
   if (loading) {
     return (
@@ -138,26 +193,51 @@ const DocumentsSection = ({ employeeId }) => {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark p-6 rounded-lg border border-border-light dark:border-border-dark">
-      <h3 className="text-lg font-semibold text-text-light dark:text-text-dark mb-4 flex items-center">
-        <span className="material-icons text-primary mr-2">folder</span>
+    <section aria-labelledby="documents-heading" className="bg-background-light dark:bg-background-dark p-6 rounded-lg border border-border-light dark:border-border-dark">
+      <h3 id="documents-heading" className="text-lg font-semibold text-text-light dark:text-text-dark mb-4 flex items-center">
+        <span className="material-icons text-primary mr-2" aria-hidden="true">folder</span>
         Documents
       </h3>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+            <button
+              onClick={handleRetry}
+              className="ml-4 inline-flex items-center gap-1 px-3 py-1 text-sm text-red-800 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              aria-label="Retry loading documents"
+            >
+              <span className="material-icons text-sm" aria-hidden="true">refresh</span>
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {downloadError && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-red-800 dark:text-red-300">{downloadError}</p>
+            <button
+              onClick={() => setDownloadError(null)}
+              className="ml-4 text-red-800 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 rounded p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              aria-label="Dismiss error message"
+            >
+              <span className="material-icons text-sm" aria-hidden="true">close</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* Category Tabs */}
-      <div className="flex space-x-1 mb-4 border-b border-border-light dark:border-border-dark" role="tablist">
+      <div className="flex flex-wrap gap-1 mb-4 border-b border-border-light dark:border-border-dark" role="tablist">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => setActiveCategory(category)}
             onKeyDown={(e) => handleCategoryKeyDown(e, category)}
-            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors rounded-t-lg ${
               activeCategory === category
                 ? 'text-primary border-b-2 border-primary bg-primary/5'
                 : 'text-subtext-light dark:text-subtext-dark hover:text-text-light dark:hover:text-text-dark hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -180,59 +260,67 @@ const DocumentsSection = ({ employeeId }) => {
         aria-labelledby={`${activeCategory}-tab`}
       >
         {filteredDocuments.length === 0 ? (
-          <div className="text-center py-8">
-            <span className="material-icons text-6xl text-subtext-light dark:text-subtext-dark mb-3">
+          <div className="text-center py-8" role="status" aria-label="No documents available">
+            <span className="material-icons text-6xl text-subtext-light dark:text-subtext-dark mb-3" aria-hidden="true">
               folder_open
             </span>
             <p className="text-subtext-light dark:text-subtext-dark">No documents available</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {filteredDocuments.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-4 rounded-lg hover:bg-card-light dark:hover:bg-card-dark transition-colors border border-transparent hover:border-border-light dark:hover:border-border-dark"
-              >
-                <div className="flex items-center space-x-4 flex-1 min-w-0">
-                  <span className="material-icons text-primary text-2xl flex-shrink-0">
-                    {getFileIcon(doc.fileType)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-light dark:text-text-dark truncate">
-                      {doc.name}
-                    </p>
-                    <div className="flex items-center space-x-3 mt-1">
-                      <span className="text-xs text-subtext-light dark:text-subtext-dark">
-                        {doc.fileType}
-                      </span>
-                      <span className="text-xs text-subtext-light dark:text-subtext-dark">
-                        {formatFileSize(doc.fileSize)}
-                      </span>
-                      <span className="text-xs text-subtext-light dark:text-subtext-dark">
-                        {new Date(doc.uploadDate).toLocaleDateString()}
-                      </span>
+          <>
+            <div className="space-y-2" role="list" aria-label={`${activeCategory} documents`}>
+              {visibleDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-card-light dark:hover:bg-card-dark transition-colors border border-transparent hover:border-border-light dark:hover:border-border-dark"
+                  role="listitem"
+                >
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                    <span className="material-icons text-primary text-xl sm:text-2xl flex-shrink-0" aria-hidden="true">
+                      {getFileIcon(doc.fileType)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-text-light dark:text-text-dark truncate">
+                        {doc.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 mt-1">
+                        <span className="text-xs text-subtext-light dark:text-subtext-dark">
+                          {doc.fileType}
+                        </span>
+                        <span className="text-xs text-subtext-light dark:text-subtext-dark">
+                          {formatFileSize(doc.fileSize)}
+                        </span>
+                        <span className="text-xs text-subtext-light dark:text-subtext-dark">
+                          {new Date(doc.uploadDate).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-shrink-0 sm:ml-4">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(doc.status)}`} role="status" aria-label={`Document status: ${doc.status}`}>
+                      {doc.status}
+                    </span>
+                    <button
+                      onClick={() => handleDownload(doc.id, doc.name)}
+                      className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      aria-label={`Download ${doc.name}`}
+                      title="Download document"
+                    >
+                      <span className="material-icons text-lg sm:text-xl" aria-hidden="true">download</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3 flex-shrink-0 ml-4">
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
-                    {doc.status}
-                  </span>
-                  <button
-                    onClick={() => handleDownload(doc.id, doc.name)}
-                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                    aria-label={`Download ${doc.name}`}
-                    title="Download document"
-                  >
-                    <span className="material-icons">download</span>
-                  </button>
-                </div>
+              ))}
+            </div>
+            {hasMoreDocuments && (
+              <div ref={loadMoreRef} className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 

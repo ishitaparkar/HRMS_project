@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from .models import Employee
+from .models import Employee, EmployeeDocument
 from authentication.services import AccountCreationService
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.contrib.auth.models import User
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -113,3 +115,107 @@ class EmployeeSerializer(serializers.ModelSerializer):
             }
         
         return representation
+
+
+class EmployeeDocumentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for EmployeeDocument model with file validation and metadata.
+    """
+    uploaded_by_name = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EmployeeDocument
+        fields = [
+            'id', 'employee', 'name', 'category', 'file', 'file_type', 
+            'file_size', 'upload_date', 'status', 'uploaded_by', 
+            'uploaded_by_name', 'download_url'
+        ]
+        read_only_fields = ['id', 'upload_date', 'uploaded_by', 'file_size', 'file_type']
+    
+    def get_uploaded_by_name(self, obj):
+        """
+        Get the full name of the user who uploaded the document.
+        """
+        if obj.uploaded_by:
+            return f"{obj.uploaded_by.first_name} {obj.uploaded_by.last_name}".strip() or obj.uploaded_by.username
+        return None
+    
+    def get_download_url(self, obj):
+        """
+        Generate the download URL for the document.
+        """
+        request = self.context.get('request')
+        if request and obj.file:
+            return request.build_absolute_uri(
+                f'/api/employees/{obj.employee.id}/documents/{obj.id}/download/'
+            )
+        return None
+    
+    def validate_file(self, value):
+        """
+        Validate file size and type.
+        """
+        # Check file size
+        if value.size > EmployeeDocument.MAX_FILE_SIZE:
+            raise serializers.ValidationError(
+                f"File size exceeds maximum allowed size of {EmployeeDocument.MAX_FILE_SIZE / (1024 * 1024)}MB"
+            )
+        
+        # Check file extension
+        file_extension = value.name.split('.')[-1].lower()
+        if file_extension not in EmployeeDocument.ALLOWED_EXTENSIONS:
+            raise serializers.ValidationError(
+                f"File type '.{file_extension}' is not allowed. Allowed types: {', '.join(EmployeeDocument.ALLOWED_EXTENSIONS)}"
+            )
+        
+        return value
+    
+    def create(self, validated_data):
+        """
+        Override create to automatically set file metadata.
+        """
+        file = validated_data.get('file')
+        if file:
+            # Set file size
+            validated_data['file_size'] = file.size
+            
+            # Set file type (extension)
+            validated_data['file_type'] = file.name.split('.')[-1].lower()
+        
+        # Set uploaded_by from request context
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['uploaded_by'] = request.user
+        
+        return super().create(validated_data)
+
+
+class TeamMemberSerializer(serializers.ModelSerializer):
+    """
+    Serializer for team member information with contact details.
+    Used for My Team page to display manager and team members.
+    """
+    profile_image = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Employee
+        fields = [
+            'id', 'firstName', 'lastName', 'full_name', 'designation', 
+            'personalEmail', 'mobileNumber', 'department', 'profile_image'
+        ]
+    
+    def get_profile_image(self, obj):
+        """
+        Get profile image URL. Returns None for now as we don't have profile images yet.
+        This can be extended when profile image functionality is added.
+        """
+        # TODO: Implement profile image retrieval when feature is added
+        return None
+    
+    def get_full_name(self, obj):
+        """
+        Get the full name of the employee.
+        """
+        return f"{obj.firstName} {obj.lastName}"

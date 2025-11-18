@@ -54,7 +54,8 @@ INSTALLED_APPS = [
     'authentication',
     'dashboard',
     'payroll',
-    'leave_management', # <-- THIS IS THE NEW LINE YOU NEED TO ADD
+    'leave_management',
+    'performance_management',
 ]
 
 MIDDLEWARE = [
@@ -183,3 +184,8 @@ SERVER_EMAIL = os.environ.get('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 # Email timeout (in seconds)
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))
+
+
+# Media files (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

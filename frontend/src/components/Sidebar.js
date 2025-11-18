@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logoImage from '../assets/logo.png';
 import { usePermission } from '../contexts/PermissionContext';
-import PersonalizedGreeting from './PersonalizedGreeting';
 
 const Sidebar = () => {
   const [isEmployeeOpen, setIsEmployeeOpen] = useState(true);
@@ -17,7 +16,7 @@ const Sidebar = () => {
   };
 
   const navLinkClass = "flex items-center px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700";
-  const subNavLinkClass = "block px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg";
+  const subNavLinkClass = "flex items-center px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg";
 
   const handleLogout = () => {
     clearAuthData();
@@ -60,65 +59,18 @@ const Sidebar = () => {
         <h1 className="text-xl font-bold text-text-light dark:text-text-dark">University HRMS</h1>
       </div>
 
-      {/* Personalized Greeting */}
-      <div className="px-6 py-4 border-b border-border-light dark:border-border-dark">
-        <PersonalizedGreeting variant="short" className="text-lg font-semibold" />
-      </div>
-
       <nav className="flex-1 px-4 py-2 space-y-1">
+        {/* Dashboard */}
         <NavLink to="/dashboard" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-          <span className="material-icons mr-3">dashboard</span> {isEmployee ? 'My Dashboard' : 'Admin Dashboard'}
+          <span className="material-icons mr-3">dashboard</span> Dashboard
         </NavLink>
-        
-        {(isSuperAdmin || isHRManager) && (
-          <NavLink to="/requirement-raising" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-            <span className="material-icons mr-3">trending_up</span> Requirement Raising
-          </NavLink>
-        )}
-        {canViewRecruitment && (
-          <NavLink to="/recruitment" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-            <span className="material-icons mr-3">group_add</span> {isEmployee ? 'Job Opportunities' : 'Recruitment'}
-          </NavLink>
-        )}
-
-        {(isSuperAdmin || isHRManager) && (
-          <NavLink to="/notes-approvals" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-            <span className="material-icons mr-3">approval</span> Notes & Approvals
-          </NavLink>
-        )}
-
-        {/* Employee Management dropdown - for HR Manager and Super Admin */}
-        {canManageAllEmployees && (
-          <div>
-            <button 
-              onClick={() => setIsEmployeeOpen(!isEmployeeOpen)} 
-              className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <div className="flex items-center">
-                <span className="material-icons mr-3">business_center</span> 
-                Employee Management
-              </div>
-              <span className="material-icons transition-transform duration-200" style={{ transform: isEmployeeOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
-            </button>
-            {isEmployeeOpen && (
-              <div className="pl-7 mt-1 space-y-1">
-                <NavLink to="/employees" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                  Staff Directory
-                </NavLink>
-                <NavLink to="/add-employee" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                  Add New Staff
-                </NavLink>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* My Space dropdown - for all users */}
         {canViewEmployees && (
           <div>
             <button 
               onClick={() => setIsMySpaceOpen(!isMySpaceOpen)} 
-              className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
             >
               <div className="flex items-center">
                 <span className="material-icons mr-3">person</span> 
@@ -129,59 +81,105 @@ const Sidebar = () => {
             {isMySpaceOpen && (
               <div className="pl-7 mt-1 space-y-1">
                 <NavLink to="/profile" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">account_circle</span>
                   Profile
                 </NavLink>
                 
-                {canViewPayroll && (
-                  <NavLink to="/payroll" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Payroll
-                  </NavLink>
-                )}
+                <NavLink to="/my-attendance" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">event_available</span>
+                  Attendance
+                </NavLink>
                 
-                {canViewAssets && (
-                  <NavLink to="/employee-assets" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Assets
-                  </NavLink>
-                )}
+                <NavLink to="/my-leave" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">event_busy</span>
+                  Leaves
+                </NavLink>
                 
-                {canViewAttendance && (
-                  <NavLink to="/attendance" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Attendance
-                  </NavLink>
-                )}
+                <NavLink to="/time-tracker" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">schedule</span>
+                  Time Tracker
+                </NavLink>
                 
-                {canViewLeaves && (
-                  <NavLink to="/leave-tracker" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Leaves
-                  </NavLink>
-                )}
+                <NavLink to="/employee-assets" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">inventory_2</span>
+                  Assets
+                </NavLink>
                 
-                {canViewAttendance && (
-                  <NavLink to="/time-tracker" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Time Tracker
-                  </NavLink>
-                )}
+                <NavLink to="/my-performance" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">trending_up</span>
+                  Performance
+                </NavLink>
                 
-                {canViewPerformance && (
-                  <NavLink to="/appraisal" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-                    Performance
-                  </NavLink>
-                )}
+                <NavLink to="/payroll" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                  <span className="material-icons mr-2 text-sm">payments</span>
+                  Payroll
+                </NavLink>
               </div>
             )}
           </div>
         )}
 
-        {canViewAnnouncements && (
-          <NavLink to="/announcement" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-            <span className="material-icons mr-3">campaign</span> {isEmployee ? 'Company News' : 'Announcement'}
+        {/* My Team */}
+        <NavLink to="/my-team" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+          <span className="material-icons mr-3">groups</span> My Team
+        </NavLink>
+
+        {/* Job Opportunities */}
+        {canViewRecruitment && (
+          <NavLink to="/recruitment" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+            <span className="material-icons mr-3">work</span> Job Opportunities
           </NavLink>
         )}
-        
+
+        {/* Company News */}
+        {canViewAnnouncements && (
+          <NavLink to="/announcement" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+            <span className="material-icons mr-3">campaign</span> Company News
+          </NavLink>
+        )}
+
+        {/* Resignation */}
         {canViewResignation && (
           <NavLink to="/resignation" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
-            <span className="material-icons mr-3">assignment_return</span> {isEmployee ? 'Resignation' : 'Resignation Management'}
+            <span className="material-icons mr-3">assignment_return</span> Resignation
           </NavLink>
+        )}
+
+        {/* HR Manager and Super Admin specific items */}
+        {(isSuperAdmin || isHRManager) && (
+          <>
+            <NavLink to="/requirement-raising" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+              <span className="material-icons mr-3">trending_up</span> Requirement Raising
+            </NavLink>
+
+            <NavLink to="/notes-approvals" className={navLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+              <span className="material-icons mr-3">approval</span> Notes & Approvals
+            </NavLink>
+
+            {/* Employee Management dropdown - for HR Manager and Super Admin */}
+            <div>
+              <button 
+                onClick={() => setIsEmployeeOpen(!isEmployeeOpen)} 
+                className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-subtext-light dark:text-subtext-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
+                <div className="flex items-center">
+                  <span className="material-icons mr-3">business_center</span> 
+                  Employee Management
+                </div>
+                <span className="material-icons transition-transform duration-200" style={{ transform: isEmployeeOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
+              </button>
+              {isEmployeeOpen && (
+                <div className="pl-7 mt-1 space-y-1">
+                  <NavLink to="/employees" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                    Staff Directory
+                  </NavLink>
+                  <NavLink to="/add-employee" className={subNavLinkClass} style={({ isActive }) => isActive ? activeStyle : undefined}>
+                    Add New Staff
+                  </NavLink>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </nav>
 

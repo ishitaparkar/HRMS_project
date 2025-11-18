@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LeaveRequest
+from .models import LeaveRequest, LeaveBalance, Holiday
 # Import the Employee model itself to perform the database lookup
 from employee_management.models import Employee
 # Import the EmployeeSerializer to handle the nested display of employee details
@@ -37,3 +37,91 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
         #    and the rest of the validated data (`**validated_data`) to the other fields.
         leave_request = LeaveRequest.objects.create(employee=employee_instance, **validated_data)
         return leave_request
+
+
+class LeaveBalanceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for LeaveBalance model.
+    Includes calculated remaining field.
+    """
+    remaining = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = LeaveBalance
+        fields = ['id', 'leave_type', 'total', 'used', 'remaining']
+
+
+class HolidaySerializer(serializers.ModelSerializer):
+    """
+    Serializer for Holiday model.
+    """
+    class Meta:
+        model = Holiday
+        fields = ['id', 'name', 'date', 'description']
+
+
+class MyLeaveRequestSerializer(serializers.ModelSerializer):
+    """
+    Simplified serializer for leave requests in my-leave endpoint.
+    Shows only essential fields without nested employee data.
+    """
+    days = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = LeaveRequest
+        fields = ['id', 'leave_type', 'start_date', 'end_date', 'days', 'reason', 'status']
+    
+    def get_days(self, obj):
+        """Calculate number of days in the leave request"""
+        if obj.start_date and obj.end_date:
+            delta = obj.end_date - obj.start_date
+            return delta.days + 1  # Include both start and end dates
+        return 0
+
+
+class LeaveRequestCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating leave requests via the my-leave endpoint.
+    Automatically associates with the authenticated user's employee profile.
+    """
+    class Meta:
+        model = LeaveRequest
+        fields = ['leave_type', 'start_date', 'end_date', 'reason']
+    
+    def validate(self, data):
+        """
+        Validate leave request dates and availability.
+        """
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        leave_type = data.get('leave_type')
+        
+        # Validate that end_date is not before start_date
+        if start_date and end_date and end_date < start_date:
+            raise serializers.ValidationError({
+                "end_date": "End date cannot be before start date."
+            })
+        
+        # Calculate number of days
+        if start_date and end_date:
+            days = (end_date - start_date).days + 1
+            
+            # Get employee from context (set in view)
+            employee = self.context.get('employee')
+            if employee and leave_type:
+                # Check if employee has sufficient leave balance
+                try:
+                    leave_balance = LeaveBalance.objects.get(
+                        employee=employee,
+                        leave_type=leave_type
+                    )
+                    if leave_balance.remaining < days:
+                        raise serializers.ValidationError({
+                            "leave_type": f"Insufficient leave balance. You have {leave_balance.remaining} days remaining."
+                        })
+                except LeaveBalance.DoesNotExist:
+                    raise serializers.ValidationError({
+                        "leave_type": f"No leave balance found for {leave_type}."
+                    })
+        
+        return data

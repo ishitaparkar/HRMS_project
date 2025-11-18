@@ -3,7 +3,7 @@ Serializers for authentication and role management.
 """
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group, Permission
-from .models import UserProfile, RoleAssignment, AuditLog
+from .models import UserProfile, UserPreferences, RoleAssignment, AuditLog
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -138,6 +138,40 @@ class UserRoleSerializer(serializers.ModelSerializer):
         """Get active role assignments with details."""
         assignments = obj.role_assignments.filter(is_active=True)
         return RoleAssignmentSerializer(assignments, many=True).data
+
+
+class UserPreferencesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for UserPreferences model.
+    """
+    class Meta:
+        model = UserPreferences
+        fields = [
+            'id', 'email_notifications', 'sms_notifications',
+            'push_notifications', 'theme', 'language', 'timezone', 'updated_at'
+        ]
+        read_only_fields = ['id', 'updated_at']
+    
+    def validate_theme(self, value):
+        """Validate that theme is one of the allowed choices."""
+        valid_themes = ['light', 'dark', 'system']
+        if value not in valid_themes:
+            raise serializers.ValidationError(
+                f"Invalid theme. Must be one of: {', '.join(valid_themes)}"
+            )
+        return value
+    
+    def validate_language(self, value):
+        """Validate language code format."""
+        if not value or len(value) > 10:
+            raise serializers.ValidationError("Invalid language code.")
+        return value
+    
+    def validate_timezone(self, value):
+        """Validate timezone string."""
+        if not value or len(value) > 50:
+            raise serializers.ValidationError("Invalid timezone.")
+        return value
 
 
 class AuditLogSerializer(serializers.ModelSerializer):

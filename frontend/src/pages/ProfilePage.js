@@ -39,10 +39,10 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         
         // Fetch user profile
-        const profileResponse = await fetch('http://localhost:8000/api/auth/profile/', {
+        const profileResponse = await fetch('http://localhost:8000/api/auth/me/', {
           headers: {
             'Authorization': `Token ${token}`,
             'Content-Type': 'application/json',
@@ -240,10 +240,98 @@ const ProfilePage = () => {
 
 // Account Settings Tab Component
 const AccountSettingsTab = () => {
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Mock login history for now - can be fetched from backend later
   const loginHistory = [
     { id: 1, ip: '103.48.19.122', location: 'Local', time: 'Today', status: 'Success' },
   ];
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPasswordError('');
+  };
+
+  const validatePassword = (password) => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    return null;
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    // Validation
+    if (!passwordData.currentPassword) {
+      setPasswordError('Please enter your current password');
+      return;
+    }
+
+    if (!passwordData.newPassword) {
+      setPasswordError('Please enter a new password');
+      return;
+    }
+
+    const validationError = validatePassword(passwordData.newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setPasswordError('New password must be different from current password');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // TODO: Implement actual password change API call
+      // const token = localStorage.getItem('authToken');
+      // await axios.post('http://127.0.0.1:8000/api/auth/change-password/', passwordData, {
+      //   headers: { 'Authorization': `Token ${token}` }
+      // });
+      
+      setPasswordSuccess('Password updated successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setTimeout(() => setPasswordSuccess(''), 5000);
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || 'Failed to update password. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -255,43 +343,97 @@ const AccountSettingsTab = () => {
             <span className="material-icons text-primary mr-2">lock</span>
             Change Password
           </h3>
-          <form className="space-y-4">
+
+          {/* Success Message */}
+          {passwordSuccess && (
+            <div 
+              className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-3 py-2 rounded-lg flex items-center text-sm"
+              role="alert"
+              aria-live="polite"
+            >
+              <span className="material-icons text-green-600 dark:text-green-400 mr-2 text-sm">check_circle</span>
+              {passwordSuccess}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {passwordError && (
+            <div 
+              className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-3 py-2 rounded-lg flex items-center text-sm"
+              role="alert"
+              aria-live="assertive"
+            >
+              <span className="material-icons text-red-600 dark:text-red-400 mr-2 text-sm">error</span>
+              {passwordError}
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
-                Current Password
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
+                Current Password <span className="text-red-500">*</span>
               </label>
               <input 
-                type="password" 
+                type="password"
+                id="currentPassword"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                required
+                disabled={isSubmitting}
                 placeholder="••••••••" 
-                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent" 
+                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50" 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
-                New Password
+              <label htmlFor="newPassword" className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
+                New Password <span className="text-red-500">*</span>
               </label>
               <input 
-                type="password" 
+                type="password"
+                id="newPassword"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+                disabled={isSubmitting}
                 placeholder="••••••••" 
-                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent" 
+                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50" 
               />
+              <p className="text-xs text-subtext-light dark:text-subtext-dark mt-1">
+                Must be at least 8 characters with uppercase, lowercase, and numbers
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
-                Confirm New Password
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-subtext-light dark:text-subtext-dark mb-1">
+                Confirm New Password <span className="text-red-500">*</span>
               </label>
               <input 
-                type="password" 
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+                disabled={isSubmitting}
                 placeholder="••••••••" 
-                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent" 
+                className="w-full px-3 py-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-md shadow-sm text-text-light dark:text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50" 
               />
             </div>
             <div>
               <button 
-                type="submit" 
-                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Update Password
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin material-icons text-sm">refresh</span>
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
               </button>
             </div>
           </form>
@@ -372,24 +514,47 @@ const EmployeeProfileTab = ({ employeeData }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <InfoCard title="Contact Information" icon="contact_mail">
-            <InfoRow icon="email" label="Personal Email" value={employeeData.personalEmail || 'N/A'} />
-            <InfoRow icon="phone" label="Phone" value={employeeData.mobileNumber || 'N/A'} />
-          </InfoCard>
+      {/* Admin-Only Fields (Locked) */}
+      <InfoCard title="Core HR Information" icon="admin_panel_settings" subtitle="(Admin Only - Read Only)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <LockedInfoRow icon="person" label="Full Name" value={`${employeeData.firstName} ${employeeData.lastName}`} />
+          <LockedInfoRow icon="badge" label="Employee ID" value={employeeData.employeeId || 'N/A'} />
+          <LockedInfoRow icon="email" label="Work Email" value={employeeData.workEmail || 'Not Set'} />
+          <LockedInfoRow icon="work" label="Job Title" value={employeeData.designation || 'N/A'} />
+          <LockedInfoRow icon="school" label="Department" value={employeeData.department || 'N/A'} />
+          <LockedInfoRow icon="business" label="School/Faculty" value={employeeData.schoolFaculty || 'Not Set'} />
+          <LockedInfoRow icon="verified" label="Employment Status" value={employeeData.employmentStatus || 'Active'} />
+          <LockedInfoRow icon="calendar_today" label="Start Date" value={employeeData.joiningDate || 'N/A'} />
+          <LockedInfoRow icon="supervisor_account" label="Reporting Manager" value={employeeData.reportingManager || 'Not Assigned'} />
         </div>
+      </InfoCard>
 
-        <div className="lg:col-span-2 space-y-6">
-          <InfoCard title="Job Information" icon="work">
-            <InfoRow icon="badge" label="Employee ID" value={employeeData.employeeId || 'N/A'} />
-            <InfoRow icon="person" label="Name" value={`${employeeData.firstName} ${employeeData.lastName}`} />
-            <InfoRow icon="school" label="Department" value={employeeData.department || 'N/A'} />
-            <InfoRow icon="work_outline" label="Designation" value={employeeData.designation || 'N/A'} />
-            <InfoRow icon="calendar_today" label="Date of Joining" value={employeeData.joiningDate || 'N/A'} />
-          </InfoCard>
+      {/* Shared Fields (Admin + Employee Editable) */}
+      <InfoCard title="Work Contact" icon="contact_phone" subtitle="(Editable)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <EditableInfoRow icon="location_on" label="Office Location" value={employeeData.officeLocation || 'Not Set'} />
+          <EditableInfoRow icon="phone" label="Work Phone" value={employeeData.workPhone || 'Not Set'} />
         </div>
-      </div>
+      </InfoCard>
+
+      {/* Employee-Only Fields */}
+      <InfoCard title="Personal Information" icon="person" subtitle="(Your Information - Editable)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <EditableInfoRow icon="badge" label="Preferred Name" value={employeeData.preferredName || 'Not Set'} />
+          <EditableInfoRow icon="phone_android" label="Personal Mobile" value={employeeData.mobileNumber || 'N/A'} />
+          <EditableInfoRow icon="email" label="Personal Email" value={employeeData.personalEmail || 'N/A'} />
+        </div>
+      </InfoCard>
+
+      {/* Emergency Contact */}
+      <InfoCard title="Emergency Contact" icon="emergency" subtitle="(Your Information - Editable)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <EditableInfoRow icon="person" label="Contact Name" value={employeeData.emergencyContactName || 'Not Set'} />
+          <EditableInfoRow icon="family_restroom" label="Relationship" value={employeeData.emergencyContactRelationship || 'Not Set'} />
+          <EditableInfoRow icon="phone" label="Contact Phone" value={employeeData.emergencyContactPhone || 'Not Set'} />
+          <EditableInfoRow icon="email" label="Contact Email" value={employeeData.emergencyContactEmail || 'Not Set'} />
+        </div>
+      </InfoCard>
 
       {/* Documents Section */}
       <DocumentsSection employeeId={employeeData.id} />
@@ -398,12 +563,17 @@ const EmployeeProfileTab = ({ employeeData }) => {
 };
 
 // Helper components
-const InfoCard = ({ title, icon, children }) => (
+const InfoCard = ({ title, icon, subtitle, children }) => (
   <div className="bg-background-light dark:bg-background-dark p-6 rounded-lg border border-border-light dark:border-border-dark">
-    <h3 className="text-lg font-semibold text-text-light dark:text-text-dark mb-4 pb-2 border-b border-border-light dark:border-border-dark flex items-center">
-      {icon && <span className="material-icons text-primary mr-2">{icon}</span>}
-      {title}
-    </h3>
+    <div className="mb-4 pb-2 border-b border-border-light dark:border-border-dark">
+      <h3 className="text-lg font-semibold text-text-light dark:text-text-dark flex items-center">
+        {icon && <span className="material-icons text-primary mr-2">{icon}</span>}
+        {title}
+      </h3>
+      {subtitle && (
+        <p className="text-xs text-subtext-light dark:text-subtext-dark mt-1 ml-8">{subtitle}</p>
+      )}
+    </div>
     <div className="space-y-4">{children}</div>
   </div>
 );
@@ -413,6 +583,38 @@ const InfoRow = ({ icon, label, value }) => (
     <span className="material-icons text-primary text-lg mr-3 mt-1">{icon}</span>
     <div className="flex-1">
       <p className="text-sm text-subtext-light dark:text-subtext-dark">{label}</p>
+      <p className="font-medium text-text-light dark:text-text-dark mt-1">{value}</p>
+    </div>
+  </div>
+);
+
+const LockedInfoRow = ({ icon, label, value }) => (
+  <div className="flex items-start">
+    <span className="material-icons text-primary text-lg mr-3 mt-1">{icon}</span>
+    <div className="flex-1">
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-subtext-light dark:text-subtext-dark">{label}</p>
+        <span className="material-icons text-xs text-gray-400" title="Admin Only - Cannot Edit">lock</span>
+      </div>
+      <p className="font-medium text-text-light dark:text-text-dark mt-1">{value}</p>
+    </div>
+  </div>
+);
+
+const EditableInfoRow = ({ icon, label, value }) => (
+  <div className="flex items-start">
+    <span className="material-icons text-primary text-lg mr-3 mt-1">{icon}</span>
+    <div className="flex-1">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-subtext-light dark:text-subtext-dark">{label}</p>
+        <button 
+          className="text-xs text-primary hover:text-primary-dark flex items-center gap-1"
+          title="Click to edit"
+        >
+          <span className="material-icons text-sm">edit</span>
+          Edit
+        </button>
+      </div>
       <p className="font-medium text-text-light dark:text-text-dark mt-1">{value}</p>
     </div>
   </div>

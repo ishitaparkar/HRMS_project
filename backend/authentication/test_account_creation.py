@@ -503,3 +503,231 @@ class AccountCreationErrorHandlingTests(TestCase):
         
         # Verify no user was created (transaction rolled back)
         self.assertFalse(User.objects.filter(username='test.employee@example.com').exists())
+
+
+
+class EmailTemplateTests(TestCase):
+    """Test cases for email template rendering and content."""
+    
+    def setUp(self):
+        """Set up test data."""
+        self.employee = Employee.objects.create(
+            firstName='John',
+            lastName='Doe',
+            employeeId='EMP001',
+            personalEmail='john.doe@example.com',
+            mobileNumber='1234567890',
+            joiningDate='2024-01-01',
+            department='Computer Science',
+            designation='Developer'
+        )
+        
+        self.user = User.objects.create_user(
+            username='john.doe@example.com',
+            email='john.doe@example.com',
+            first_name='John',
+            last_name='Doe',
+            password='TempPass123'
+        )
+        
+        self.temp_password = 'TempPass123!@#'
+    
+    def test_html_email_template_renders(self):
+        """Test HTML email template renders without errors."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        html_content = render_to_string('authentication/emails/welcome_email.html', context)
+        
+        # Verify template rendered
+        self.assertIsNotNone(html_content)
+        self.assertGreater(len(html_content), 0)
+    
+    def test_text_email_template_renders(self):
+        """Test plain text email template renders without errors."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        text_content = render_to_string('authentication/emails/welcome_email.txt', context)
+        
+        # Verify template rendered
+        self.assertIsNotNone(text_content)
+        self.assertGreater(len(text_content), 0)
+    
+    def test_html_email_contains_required_information(self):
+        """Test HTML email template contains all required information."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        html_content = render_to_string('authentication/emails/welcome_email.html', context)
+        
+        # Verify all required information is present
+        self.assertIn('John', html_content)
+        self.assertIn('Doe', html_content)
+        self.assertIn('EMP001', html_content)
+        self.assertIn('john.doe@example.com', html_content)
+        self.assertIn('TempPass123!@#', html_content)
+        self.assertIn('http://localhost:3000', html_content)
+        self.assertIn('Test Organization', html_content)
+    
+    def test_text_email_contains_required_information(self):
+        """Test plain text email template contains all required information."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        text_content = render_to_string('authentication/emails/welcome_email.txt', context)
+        
+        # Verify all required information is present
+        self.assertIn('John', text_content)
+        self.assertIn('Doe', text_content)
+        self.assertIn('EMP001', text_content)
+        self.assertIn('john.doe@example.com', text_content)
+        self.assertIn('TempPass123!@#', text_content)
+        self.assertIn('http://localhost:3000', text_content)
+        self.assertIn('Test Organization', text_content)
+    
+    def test_html_email_contains_security_disclaimer(self):
+        """Test HTML email template contains security disclaimer."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        html_content = render_to_string('authentication/emails/welcome_email.html', context)
+        
+        # Verify security disclaimer is present
+        self.assertIn('security', html_content.lower())
+        self.assertIn('password', html_content.lower())
+        self.assertIn('change', html_content.lower())
+    
+    def test_text_email_contains_security_disclaimer(self):
+        """Test plain text email template contains security disclaimer."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        text_content = render_to_string('authentication/emails/welcome_email.txt', context)
+        
+        # Verify security disclaimer is present
+        self.assertIn('security', text_content.lower())
+        self.assertIn('password', text_content.lower())
+        self.assertIn('change', text_content.lower())
+    
+    def test_html_email_has_valid_html_structure(self):
+        """Test HTML email template has valid HTML structure."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        html_content = render_to_string('authentication/emails/welcome_email.html', context)
+        
+        # Verify basic HTML structure
+        self.assertIn('<!DOCTYPE html>', html_content)
+        self.assertIn('<html', html_content)
+        self.assertIn('</html>', html_content)
+        self.assertIn('<head>', html_content)
+        self.assertIn('</head>', html_content)
+        self.assertIn('<body>', html_content)
+        self.assertIn('</body>', html_content)
+    
+    def test_html_email_has_responsive_meta_tags(self):
+        """Test HTML email template has responsive meta tags for mobile."""
+        from django.template.loader import render_to_string
+        
+        context = {
+            'organization_name': 'Test Organization',
+            'employee_first_name': self.employee.firstName,
+            'employee_last_name': self.employee.lastName,
+            'employee_id': self.employee.employeeId,
+            'username': self.user.email,
+            'temporary_password': self.temp_password,
+            'portal_url': 'http://localhost:3000',
+        }
+        
+        html_content = render_to_string('authentication/emails/welcome_email.html', context)
+        
+        # Verify responsive meta tags
+        self.assertIn('viewport', html_content)
+        self.assertIn('width=device-width', html_content)
+    
+    @patch('authentication.services.EmailMultiAlternatives')
+    def test_send_welcome_email_uses_html_template(self, mock_email):
+        """Test send_welcome_email uses HTML template."""
+        mock_email_instance = MagicMock()
+        mock_email.return_value = mock_email_instance
+        
+        AccountCreationService.send_welcome_email(
+            user=self.user,
+            employee=self.employee,
+            temporary_password=self.temp_password
+        )
+        
+        # Verify EmailMultiAlternatives was called
+        mock_email.assert_called_once()
+        
+        # Verify attach_alternative was called with HTML content
+        mock_email_instance.attach_alternative.assert_called_once()
+        call_args = mock_email_instance.attach_alternative.call_args
+        self.assertEqual(call_args[0][1], "text/html")
+        
+        # Verify HTML content contains employee information
+        html_content = call_args[0][0]

@@ -7,11 +7,11 @@ from rest_framework import status, generics
 from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from .models import RoleAssignment, AuditLog
+from .models import RoleAssignment, AuditLog, UserPreferences
 from .serializers import (
     RoleSerializer, RoleCreateSerializer, RoleAssignmentSerializer,
     RoleAssignmentCreateSerializer, RoleRevocationSerializer,
-    UserRoleSerializer
+    UserRoleSerializer, UserPreferencesSerializer
 )
 from .permissions import IsSuperAdmin, get_client_ip
 
@@ -52,7 +52,7 @@ class CustomAuthToken(ObtainAuthToken):
                 first_name = employee.firstName
                 last_name = employee.lastName
                 full_name = f"{employee.firstName} {employee.lastName}"
-                employee_id = employee.employeeId
+                employee_id = employee.id  # Use numeric ID instead of employeeId string
         
         # Return enhanced response with role, permission, and employee data
         return Response({
@@ -120,7 +120,7 @@ class CurrentUserView(APIView):
                 first_name = employee.firstName
                 last_name = employee.lastName
                 full_name = f"{employee.firstName} {employee.lastName}"
-                employee_id = employee.employeeId
+                employee_id = employee.id  # Use numeric ID instead of employeeId string
                 
                 profile_data['employee'] = {
                     'id': employee.id,
@@ -601,3 +601,46 @@ class AuditLogListAPIView(generics.ListAPIView):
             ])
         
         return response
+
+
+
+class UserPreferencesAPIView(APIView):
+    """
+    API endpoint to get and update user preferences.
+    
+    GET /api/auth/preferences/ - Get current user's preferences
+    PATCH /api/auth/preferences/ - Update current user's preferences
+    
+    Requires authentication. Users can only access their own preferences.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get current user's preferences."""
+        # Get or create preferences for the user
+        preferences, created = UserPreferences.objects.get_or_create(
+            user=request.user
+        )
+        
+        serializer = UserPreferencesSerializer(preferences)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request):
+        """Update current user's preferences."""
+        # Get or create preferences for the user
+        preferences, created = UserPreferences.objects.get_or_create(
+            user=request.user
+        )
+        
+        # Update preferences with partial data
+        serializer = UserPreferencesSerializer(
+            preferences,
+            data=request.data,
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, RoleAssignment, AuditLog
+from .models import UserProfile, UserPreferences, RoleAssignment, AuditLog
 
 
 @admin.register(UserProfile)
@@ -8,6 +8,14 @@ class UserProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__email', 'department')
     list_filter = ('department', 'created_at')
     raw_id_fields = ('user', 'employee')
+
+
+@admin.register(UserPreferences)
+class UserPreferencesAdmin(admin.ModelAdmin):
+    list_display = ('user', 'theme', 'email_notifications', 'sms_notifications', 'push_notifications', 'updated_at')
+    search_fields = ('user__username', 'user__email')
+    list_filter = ('theme', 'email_notifications', 'sms_notifications', 'push_notifications')
+    raw_id_fields = ('user',)
 
 
 @admin.register(RoleAssignment)

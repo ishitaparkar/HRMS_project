@@ -44,6 +44,33 @@ class RoleAssignment(models.Model):
         ordering = ['-assigned_at']
 
 
+class UserPreferences(models.Model):
+    """
+    Stores user preferences for notifications and UI settings.
+    """
+    THEME_CHOICES = [
+        ('light', 'Light'),
+        ('dark', 'Dark'),
+        ('system', 'System Default'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
+    email_notifications = models.BooleanField(default=True)
+    sms_notifications = models.BooleanField(default=False)
+    push_notifications = models.BooleanField(default=True)
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='system')
+    language = models.CharField(max_length=10, default='en')
+    timezone = models.CharField(max_length=50, default='UTC')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - Preferences"
+
+    class Meta:
+        verbose_name = "User Preferences"
+        verbose_name_plural = "User Preferences"
+
+
 class AuditLog(models.Model):
     """
     Records all permission and role changes for security compliance.
