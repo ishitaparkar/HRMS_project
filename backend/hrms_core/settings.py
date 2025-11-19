@@ -96,11 +96,14 @@ WSGI_APPLICATION = 'hrms_core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'hrms_db',
-        'USER': 'hrms_user',
-        'PASSWORD': 'your_secure_password_here', # The password you created
-        'HOST': 'localhost',
-        'PORT': '5432', # Default PostgreSQL port
+        'NAME': os.getenv('DB_NAME', 'hrms_db'),
+        'USER': os.getenv('DB_USER', 'hrms_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'your_secure_password_here'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        } if os.getenv('DB_HOST') and 'neon.tech' in os.getenv('DB_HOST', '') else {},
     }
 }
 
